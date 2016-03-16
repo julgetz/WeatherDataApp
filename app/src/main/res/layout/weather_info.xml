@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+     >
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="fill_parent"
+        android:layout_height="50dp">
+
+        <TextView android:id="@+id/tv_statio_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="14pt"
+            android:singleLine="true"
+            android:layout_marginTop="8dp"/>
+
+    </LinearLayout>
+
+    <TextView android:id="@+id/tv_info"
+        android:layout_width="wrap_content"
+        android:layout_height="fill_parent"
+        android:layout_margin="5dp"
+        android:scrollbars = "vertical"/>
+
+    <TextView android:id="@+id/tv_Timestamp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="8pt"
+        android:singleLine="true"
+        android:layout_marginTop="8dp"
+        android:text="Timestamp: "/>
+
+    <TextView android:id="@+id/tv_Temperature"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="8pt"
+        android:singleLine="true"
+        android:layout_marginTop="8dp"
+        android:text="Temperature : "/>
+
+    <TextView android:id="@+id/tv_Pressure"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="8pt"
+        android:singleLine="true"
+        android:layout_marginTop="8dp"
+        android:text="Pressure : "/>
+
+    <TextView android:id="@+id/tv_Humidity"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="8pt"
+        android:singleLine="true"
+        android:layout_marginTop="8dp"
+        android:text="Humidity : "/>
+
+
+
+
+
+
+</LinearLayout>

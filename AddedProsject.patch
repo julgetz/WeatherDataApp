@@ -1,0 +1,1862 @@
+Index: app/src/main/java/no/hin/dt/weatherdataapp/DownloadWeatherDataASyncTask.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/no/hin/dt/weatherdataapp/DownloadWeatherDataASyncTask.java	(revision )
++++ app/src/main/java/no/hin/dt/weatherdataapp/DownloadWeatherDataASyncTask.java	(revision )
+@@ -0,0 +1,68 @@
++package no.hin.dt.weatherdataapp;
++
++import android.content.Context;
++import android.os.AsyncTask;
++
++import java.io.BufferedReader;
++import java.io.IOException;
++import java.io.InputStreamReader;
++import java.net.MalformedURLException;
++import java.net.URL;
++
++// DwoloadWeatherDataAsynTaskbruker ASYcTask for og laste ned og hente WeatherData linken fra web.
++
++/**
++ * Created by Julia on 06.03.2016.
++ *
++ *
++ */
++
++// AsyncTask that handles the download of the Weatherdata infro from the web whenever it is needed
++public class DownloadWeatherDataASyncTask extends AsyncTask<Station, Void , String> {
++
++    private Context context = null;
++    private  String WeatherSource = "http://kark.hin.no/~wfa/fag/android/2016/weather/vdata.php?id=";
++
++
++    public DownloadWeatherDataASyncTask(Context context){
++        this.context = context;
++    }
++
++    // dowload the Wheater info link from the web,
++
++
++    @Override
++    protected String doInBackground(Station... params) {
++          WeatherSource += params[0].getId();
++
++        URL weatherUrl;
++        String stringText = "";
++
++        try{
++            weatherUrl = new URL(WeatherSource);
++            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(weatherUrl.openStream()));
++            String StringBuffer;
++
++            while ((StringBuffer = bufferedReader.readLine())!= null){
++                stringText += StringBuffer;
++            }
++
++            bufferedReader.close();
++          //  Toast toas = Toast.makeText(context, stringText, Toast.LENGTH_LONG);
++            //toas.show();
++
++
++        } catch (MalformedURLException e) {
++            e.printStackTrace();
++        } catch (IOException e) {
++            e.printStackTrace();
++        }
++         return stringText;
++    }
++
++    protected void onPostExecute(String s){
++        ((MainActivity) context).returnedStationData(s);
++    }
++
++
++}
+Index: app/src/main/java/no/hin/dt/weatherdataapp/StationListFragment.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/no/hin/dt/weatherdataapp/StationListFragment.java	(revision )
++++ app/src/main/java/no/hin/dt/weatherdataapp/StationListFragment.java	(revision )
+@@ -0,0 +1,138 @@
++package no.hin.dt.weatherdataapp;
++
++import android.content.Context;
++import android.net.Uri;
++import android.os.Bundle;
++import android.support.v4.app.Fragment;
++import android.view.LayoutInflater;
++import android.view.View;
++import android.view.ViewGroup;
++import android.widget.AdapterView;
++import android.widget.ArrayAdapter;
++import android.widget.ListView;
++
++import java.util.ArrayList;
++/**
++ * Created by Julia on 05.03.2016.
++ */
++
++
++
++
++public class StationListFragment extends Fragment implements AdapterView.OnItemClickListener{
++
++    private static final String ARG_PARAM1 = "param1";
++    private static final String ARG_PARAM2 = "param2";
++    private ArrayList<Station> stationList;
++    private ArrayAdapter<String> arrayAdapter;
++    private ListView lv;
++
++
++    private String mParam1;
++    private String mParam2;
++
++    private OnFragmentInteractionListener mListener;
++
++    public interface OnSelectionChanged {
++        public void onIndexChanged(Station returnedStation);
++    }
++
++    private OnSelectionChanged parentActivity;
++
++
++
++    public StationListFragment() {
++        // Required empty public constructor
++    }
++
++    public void FillStationList(ArrayList<Station> stationList){
++        this.stationList = stationList;
++        ArrayList<String> stationNames = new ArrayList<>();
++        for (Station station: stationList) {
++            stationNames.add(station.getName());
++        }
++
++        arrayAdapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_list_item_1, stationNames);
++
++            lv =(ListView)getActivity().findViewById(R.id.lv_Station_Selector);
++            lv.setAdapter(arrayAdapter);
++            lv.setOnItemClickListener(this);
++
++
++        }
++
++
++    public static StationListFragment newInstance(String param1, String param2) {
++        StationListFragment fragment = new StationListFragment();
++        Bundle args = new Bundle();
++        args.putString(ARG_PARAM1, param1);
++        args.putString(ARG_PARAM2, param2);
++        fragment.setArguments(args);
++        return fragment;
++    }
++
++    @Override
++    public void onCreate(Bundle savedInstanceState) {
++        super.onCreate(savedInstanceState);
++        if (getArguments() != null) {
++            mParam1 = getArguments().getString(ARG_PARAM1);
++            mParam2 = getArguments().getString(ARG_PARAM2);
++        }
++    }
++
++    @Override
++    public View onCreateView(LayoutInflater inflater, ViewGroup container,
++                             Bundle savedInstanceState) {
++        // Inflate the layout for this fragment
++        return inflater.inflate(R.layout.fragment_station_list, container, false);
++    }
++
++
++    public void onButtonPressed(Uri uri) {
++        if (mListener != null) {
++            mListener.onFragmentInteraction(uri);
++        }
++    }
++
++    @Override
++    public void onAttach(Context context) {
++        super.onAttach(context);
++        if (context instanceof OnFragmentInteractionListener) {
++            mListener = (OnFragmentInteractionListener) context;
++        } else {
++            throw new RuntimeException(context.toString()
++                    + " must implement OnFragmentInteractionListener");
++        }
++        if (context instanceof OnSelectionChanged) {
++            parentActivity = (OnSelectionChanged) context;
++        } else {
++            throw new RuntimeException(context.toString()
++                    + " must implement OnSelectionChanged");
++        }
++    }
++
++    @Override
++    public void onDetach() {
++        super.onDetach();
++        mListener = null;
++    }
++
++    @Override
++    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
++
++
++        // her skal man bruke interface metoden til og sende data tilbake til mainactivity
++    if (stationList != null && stationList.size() >= position){
++        parentActivity.onIndexChanged(stationList.get(position));
++    }
++//        parentActivity.onIndexChanged(position);
++
++
++    }
++
++
++    public interface OnFragmentInteractionListener {
++
++        void onFragmentInteraction(Uri uri);
++    }
++}
+Index: app/src/main/java/no/hin/dt/weatherdataapp/MySQLiteHelper.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/no/hin/dt/weatherdataapp/MySQLiteHelper.java	(revision )
++++ app/src/main/java/no/hin/dt/weatherdataapp/MySQLiteHelper.java	(revision )
+@@ -0,0 +1,51 @@
++package no.hin.dt.weatherdataapp;
++
++import android.content.Context;
++import android.database.sqlite.SQLiteDatabase;
++import android.database.sqlite.SQLiteOpenHelper;
++
++/**
++ * Created by Julia on 06.03.2016.
++ */
++public class MySQLiteHelper extends SQLiteOpenHelper {
++
++    //Databasespesifikt:
++    private static final String DATABASE_NAME = "WeatherData.db";
++    private static final int DATABASE_VERSION =22;
++
++    public MySQLiteHelper(Context context) {
++        super(context, DATABASE_NAME, null, DATABASE_VERSION);
++    }
++
++
++    public MySQLiteHelper(Context context, String name, SQLiteDatabase.CursorFactory factory, int version) {
++        super(context, name, factory, version);
++    }
++
++    // Kalles når databasen ikke eksisterer og må opprettes
++    @Override
++    public void onCreate(SQLiteDatabase database) {
++        StationTable.onCreate(database);
++        WeatherTable.onCreate(database);
++    }
++
++    // Kalles ved behov for oppgradering, dvs. mismatch mellom ny og gammel
++    // versjon
++    @Override
++    public void onUpgrade(SQLiteDatabase database, int oldVersion, int newVersion) {
++        StationTable.onUpgrade(database, oldVersion, newVersion);
++        WeatherTable.onUpgrade(database, oldVersion, newVersion);
++    }
++
++    // Enables support for foreign keys
++    @Override
++    public void onOpen(SQLiteDatabase db) {
++        super.onOpen(db);
++        if (!db.isReadOnly()) {
++            // Enable foreign key constraints
++            db.execSQL("PRAGMA foreign_keys=ON;");
++        }
++    }
++
++
++}
+Index: app/src/main/java/no/hin/dt/weatherdataapp/Station.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/no/hin/dt/weatherdataapp/Station.java	(revision )
++++ app/src/main/java/no/hin/dt/weatherdataapp/Station.java	(revision )
+@@ -0,0 +1,70 @@
++package no.hin.dt.weatherdataapp;
++
++import com.google.gson.Gson;
++
++/**
++ * Created by Julia on 05.03.2016.
++ */
++public class Station {
++
++    // primærnøkkeltfelt
++    private int id;
++    private String name;
++    private String position;
++
++
++
++    public Station() {
++        this.id = 0;
++        this.name = "";
++        this.position = "";
++
++
++
++    }
++
++    public Station(int id, String name, String position){
++        this.id = id;
++        this.name = name;
++        this.position = position;
++
++    }
++
++    public Station(String name, String position){
++        this.name = name;
++        this.position = position;
++    }
++
++
++    public int getId() {
++        return id;
++    }
++
++    public void setId(int id) {
++        this.id = id;
++    }
++
++    public String getName() {
++        return name;
++    }
++
++    public void setName(String name) {
++        this.name = name;
++    }
++
++    public String getPosition() {
++        return position;
++    }
++
++    public void setPosition(String position) {
++        this.position = position;
++    }
++
++    public String toJSONString() {
++        Gson gson = new Gson();
++        String json = gson.toJson(this);
++        return json;
++    }
++}
++
++
+Index: app/src/main/res/layout/fragment_blank.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/layout/fragment_blank.xml	(revision )
++++ app/src/main/res/layout/fragment_blank.xml	(revision )
+@@ -0,0 +1,13 @@
++<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:tools="http://schemas.android.com/tools"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++    tools:context="no.hin.dt.weatherdataapp.BlankFragment">
++
++    <!-- TODO: Update blank fragment layout -->
++    <TextView
++        android:layout_width="match_parent"
++        android:layout_height="match_parent"
++        android:text="@string/hello_blank_fragment" />
++
++</FrameLayout>
+Index: app/src/main/res/values/colors.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/values/colors.xml	(revision )
++++ app/src/main/res/values/colors.xml	(revision )
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <color name="colorPrimary">#3F51B5</color>
++    <color name="colorPrimaryDark">#303F9F</color>
++    <color name="colorAccent">#FF4081</color>
++</resources>
+Index: app/src/main/res/layout/activity_main.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/layout/activity_main.xml	(revision )
++++ app/src/main/res/layout/activity_main.xml	(revision )
+@@ -0,0 +1,52 @@
++<?xml version="1.0" encoding="utf-8"?>
++<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
++
++    xmlns:tools="http://schemas.android.com/tools"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++    android:paddingBottom="@dimen/activity_vertical_margin"
++    android:paddingLeft="@dimen/activity_horizontal_margin"
++    android:paddingRight="@dimen/activity_horizontal_margin"
++    android:paddingTop="@dimen/activity_vertical_margin"
++    tools:context="no.hin.dt.weatherdataapp.MainActivity"
++    android:background="#ffffff">
++
++
++        <fragment
++            android:id="@+id/fragment_station_list"
++            android:layout_width="135dp"
++            android:layout_height="fill_parent"
++            android:name="no.hin.dt.weatherdataapp.StationListFragment"/>
++
++
++
++        <LinearLayout
++            android:layout_width="fill_parent"
++            android:layout_height="fill_parent"
++            android:orientation="vertical"
++            android:weightSum="1.0"
++            android:layout_toRightOf="@+id/fragment_station_list"
++            android:background="#ffffff">
++            <fragment
++                android:id="@+id/fragment_weather_info"
++                android:layout_width="fill_parent"
++                android:layout_height="fill_parent"
++                android:layout_weight="0.57"
++                android:name="no.hin.dt.weatherdataapp.WeatherInfoFragment" />
++<!--
++            <fragment
++                android:id="@+id/weather_map_fragment"
++                android:layout_width="fill_parent"
++                android:layout_height="fill_parent"
++                android:layout_weight="0.43"
++                class="no.hin.henning.kommuneinfo.WeatherMap" />-->
++        </LinearLayout>
++<!--
++        <fragment
++            android:id="@+id/fragment_graph"
++            android:layout_width="wrap_content"
++            android:layout_height="wrap_content"
++            android:name="no.hin.dt.weatherdataapp.GraphFragment"/> -->
++
++
++</RelativeLayout>
+Index: app/src/test/java/no/hin/dt/httpgson1/ExampleUnitTest.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/test/java/no/hin/dt/httpgson1/ExampleUnitTest.java	(revision )
++++ app/src/test/java/no/hin/dt/httpgson1/ExampleUnitTest.java	(revision )
+@@ -0,0 +1,15 @@
++package no.hin.dt.weatherdataapp;
++
++import org.junit.Test;
++
++import static org.junit.Assert.*;
++
++/**
++ * To work on unit tests, switch the Test Artifact in the Build Variants view.
++ */
++public class ExampleUnitTest {
++    @Test
++    public void addition_isCorrect() throws Exception {
++        assertEquals(4, 2 + 2);
++    }
++}
+\ No newline at end of file
+Index: app/src/main/java/no/hin/dt/weatherdataapp/Weather.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/no/hin/dt/weatherdataapp/Weather.java	(revision )
++++ app/src/main/java/no/hin/dt/weatherdataapp/Weather.java	(revision )
+@@ -0,0 +1,124 @@
++package no.hin.dt.weatherdataapp;
++
++import com.google.gson.Gson;
++
++/**
++ * Created by Julia on 06.03.2016.
++ */
++public class Weather {
++    private int id;
++    private String station_name;
++    private String station_position;
++    private String timestamp;
++    private double temperature;
++    private double pressure;
++    private double humidity;
++    private int weatherId;
++
++
++    public Weather() {
++        this.id = 0;
++        this.station_name = "";
++        this.station_position = "";
++        this.timestamp = "";
++        this.temperature = 0;
++        this.pressure = 0;
++        this.humidity = 0;
++
++
++    }
++
++
++    public Weather(String station_name, String station_position, String timestamp, double temperature, double pressure, double humidity ,int weatherId) {
++
++        this.station_name = station_name;
++        this.station_position = station_position;
++        this.timestamp = timestamp;
++        this.temperature = temperature;
++        this.pressure = pressure;
++        this.humidity = humidity;
++        this.weatherId = weatherId;
++
++
++    }
++
++    public Weather(String station_name, String station_position, String timestamp, double temperature, double pressure, double humidity) {
++        this.station_name = station_name;
++        this.station_position = station_position;
++        this.timestamp = timestamp;
++        this.temperature = temperature;
++        this.pressure = pressure;
++        this.humidity = humidity;
++    }
++
++
++    public int getId() {
++        return id;
++    }
++
++    public void setId(int id) {
++        this.id = id;
++    }
++
++    public String getStation_name() {
++        return station_name;
++    }
++
++    public void setStation_name(String station_name) {
++        this.station_name = station_name;
++    }
++
++    public String getStation_position() {
++        return station_position;
++    }
++
++    public void setStation_position(String station_position) {
++        this.station_position = station_position;
++    }
++
++    public String getTimestamp() {
++        return timestamp;
++    }
++
++    public void setTimestamp(String timestamp) {
++        this.timestamp = timestamp;
++    }
++
++    public double getTemperature() {
++        return temperature;
++    }
++
++    public void setTemperature(double temperature) {
++        this.temperature = temperature;
++    }
++
++    public double getPressure() {
++        return pressure;
++    }
++
++    public void setPressure(double pressure) {
++        this.pressure = pressure;
++    }
++
++    public double getHumidity() {
++        return humidity;
++    }
++
++    public void setHumidity(double humidity) {
++        this.humidity = humidity;
++    }
++
++    public int getWeatherId() {
++        return weatherId;
++    }
++
++    public void setWeatherId(int weatherId) {
++        this.weatherId = weatherId;
++    }
++
++    public String toJSONString() {
++        Gson gson = new Gson();
++        String json = gson.toJson(this);
++        return json;
++    }
++}
+\ No newline at end of file
+Index: app/src/main/java/no/hin/dt/weatherdataapp/WeatherInfoFragment.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/no/hin/dt/weatherdataapp/WeatherInfoFragment.java	(revision )
++++ app/src/main/java/no/hin/dt/weatherdataapp/WeatherInfoFragment.java	(revision )
+@@ -0,0 +1,128 @@
++package no.hin.dt.weatherdataapp;
++
++import android.os.Bundle;
++import android.support.v4.app.Fragment;
++import android.view.LayoutInflater;
++import android.view.View;
++import android.view.ViewGroup;
++import android.widget.TextView;
++
++import com.google.gson.Gson;
++import com.google.gson.reflect.TypeToken;
++
++import java.lang.reflect.Type;
++import java.util.ArrayList;
++import java.util.List;
++
++
++public class WeatherInfoFragment extends Fragment {
++
++    private ArrayList<Weather> weathers = new ArrayList<>();
++    private TextView textView;
++    private Weather weather;
++
++    private static final String ARG_PARAM1 = "param1";
++    private static final String ARG_PARAM2 = "param2";
++
++
++    private String mParam1;
++    private String mParam2;
++
++//    private OnFragmentInteractionListener mListener;
++
++    public WeatherInfoFragment() {
++        // Required empty public constructor
++    }
++/*
++    public interface WeatherInfoShown {
++        public void onShowIndex(Weather retunrWeather);
++
++    }
++*/
++    public ArrayList<Weather> getWeatherInfo() {
++        Gson gson = new Gson();
++        String jsonOutput = "http://kark.hin.no/~wfa/fag/android/2016/weather/vdata.php?id=2";
++        Type listType = new TypeToken<List<Weather>>() {
++        }.getType();
++        List<Weather> weather = (List<Weather>) gson.fromJson(jsonOutput, listType);
++        return getWeatherInfo();
++    }
++
++    public void displayWeatherData(Weather weather){
++
++        String str = "WEATHER INFO" + "\n\n"+
++                "STATION:" + "\n" + weather.getStation_name() + "\n" +
++                "POSITION: " + "\n" + weather.getStation_position() + "\n" +
++                "TIMESTAMP: " + "\n"  + weather.getTimestamp() + "\n" +
++                "TEMPERATURE: " + "\n" +  weather.getTemperature() + "\n" +
++                "PRESSURE: " + "\n" + weather.getPressure() + "\n" +
++                "HUMIDITY: " + "\n" + weather.getHumidity() + "%";
++        textView.setText(str);
++     //   tv = new TextView(getActivity());
++       // tv =(TextView)getView().findViewById(R.id.tv_weather_data);
++        //tv.setText(weather.getTemperature() + " - " + weather.getStation_name());
++
++
++    }
++
++
++
++
++    public static WeatherInfoFragment newInstance(String param1, String param2) {
++        WeatherInfoFragment fragment = new WeatherInfoFragment();
++        Bundle args = new Bundle();
++        args.putString(ARG_PARAM1, param1);
++        args.putString(ARG_PARAM2, param2);
++        fragment.setArguments(args);
++        return fragment;
++    }
++
++    @Override
++    public void onCreate(Bundle savedInstanceState) {
++        super.onCreate(savedInstanceState);
++        if (getArguments() != null) {
++            mParam1 = getArguments().getString(ARG_PARAM1);
++            mParam2 = getArguments().getString(ARG_PARAM2);
++        }
++    }
++
++    @Override
++    public View onCreateView(LayoutInflater inflater, ViewGroup container,
++                             Bundle savedInstanceState) {
++
++         textView = new TextView(getActivity());
++      //  textView.setText(R.string.hello_blank_fragment);
++        return textView;
++    }
++
++    @Override
++    public void onDetach() {
++        super.onDetach();
++//        mListener = null;
++    }
++/*
++    public void onButtonPressed(Uri uri) {
++        if (mListener != null) {
++            mListener.onFragmentInteraction(uri);
++        }
++    }
++
++    @Override
++    public void onAttach(Context context) {
++        super.onAttach(context);
++        if (context instanceof OnFragmentInteractionListener) {
++            mListener = (OnFragmentInteractionListener) context;
++        } else {
++            throw new RuntimeException(context.toString()
++                    + " must implement OnFragmentInteractionListener");
++        }
++    }
++
++
++
++    public interface OnFragmentInteractionListener {
++
++        void onFragmentInteraction(Uri uri);
++    }
++    */
++}
+Index: app/src/main/res/values-w820dp/dimens.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/values-w820dp/dimens.xml	(revision )
++++ app/src/main/res/values-w820dp/dimens.xml	(revision )
+@@ -0,0 +1,6 @@
++<resources>
++    <!-- Example customization of dimensions originally defined in res/values/dimens.xml
++         (such as screen margins) for screens with more than 820dp of available width. This
++         would include 7" and 10" devices in landscape (~960dp and ~1280dp respectively). -->
++    <dimen name="activity_horizontal_margin">64dp</dimen>
++</resources>
+Index: app/build.gradle
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/build.gradle	(revision )
++++ app/build.gradle	(revision )
+@@ -0,0 +1,30 @@
++apply plugin: 'com.android.application'
++
++android {
++    compileSdkVersion 23
++    buildToolsVersion "23.0.2"
++
++    defaultConfig {
++        applicationId "no.hin.dt.httpgson1"
++        minSdkVersion 15
++        targetSdkVersion 23
++        versionCode 1
++        versionName "1.0"
++    }
++    buildTypes {
++        release {
++            minifyEnabled false
++            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
++        }
++    }
++}
++
++dependencies {
++    compile fileTree(include: ['*.jar'], dir: 'libs')
++    testCompile 'junit:junit:4.12'
++    compile files('libs/gson-2.2.4.jar')
++    compile files('libs/GraphView-4.0.1 (1).jar')
++     //compile 'com.jjoe64:graphview:4.0.1'
++    compile 'com.android.support:appcompat-v7:23.1.1'
++    compile 'com.android.support:support-v4:23.1.1'
++}
+Index: app/src/main/res/layout/weather_info.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/layout/weather_info.xml	(revision )
++++ app/src/main/res/layout/weather_info.xml	(revision )
+@@ -0,0 +1,66 @@
++<?xml version="1.0" encoding="utf-8"?>
++<LinearLayout
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    android:orientation="vertical"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++     >
++
++    <LinearLayout
++        android:orientation="horizontal"
++        android:layout_width="fill_parent"
++        android:layout_height="50dp">
++
++        <TextView android:id="@+id/tv_statio_name"
++            android:layout_width="wrap_content"
++            android:layout_height="wrap_content"
++            android:textSize="14pt"
++            android:singleLine="true"
++            android:layout_marginTop="8dp"/>
++
++    </LinearLayout>
++
++    <TextView android:id="@+id/tv_info"
++        android:layout_width="wrap_content"
++        android:layout_height="fill_parent"
++        android:layout_margin="5dp"
++        android:scrollbars = "vertical"/>
++
++    <TextView android:id="@+id/tv_Timestamp"
++        android:layout_width="wrap_content"
++        android:layout_height="wrap_content"
++        android:textSize="8pt"
++        android:singleLine="true"
++        android:layout_marginTop="8dp"
++        android:text="Timestamp: "/>
++
++    <TextView android:id="@+id/tv_Temperature"
++        android:layout_width="wrap_content"
++        android:layout_height="wrap_content"
++        android:textSize="8pt"
++        android:singleLine="true"
++        android:layout_marginTop="8dp"
++        android:text="Temperature : "/>
++
++    <TextView android:id="@+id/tv_Pressure"
++        android:layout_width="wrap_content"
++        android:layout_height="wrap_content"
++        android:textSize="8pt"
++        android:singleLine="true"
++        android:layout_marginTop="8dp"
++        android:text="Pressure : "/>
++
++    <TextView android:id="@+id/tv_Humidity"
++        android:layout_width="wrap_content"
++        android:layout_height="wrap_content"
++        android:textSize="8pt"
++        android:singleLine="true"
++        android:layout_marginTop="8dp"
++        android:text="Humidity : "/>
++
++
++
++
++
++
++</LinearLayout>
+Index: app/src/main/res/values/strings.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/values/strings.xml	(revision )
++++ app/src/main/res/values/strings.xml	(revision )
+@@ -0,0 +1,14 @@
++<resources>
++    <string name="app_name">WeatherDataApp</string>
++    <string name="action_settings">Settings</string>
++    <string name="action_end">Avslutt</string>
++    <string name="app_bar_title">Simple Gson</string>
++
++    <string name="url">http://kark.hin.no:8088/d3330log_backend/getTestUser</string>
++
++    <!-- TODO: Remove or change this placeholder text -->
++    <string name="hello_blank_fragment">Hello blank fragment</string>
++
++    <!-- TODO: Remove or change this placeholder text -->
++
++</resources>
+Index: app/proguard-rules.pro
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/proguard-rules.pro	(revision )
++++ app/proguard-rules.pro	(revision )
+@@ -0,0 +1,17 @@
++# Add project specific ProGuard rules here.
++# By default, the flags in this file are appended to flags specified
++# in C:\Users\Werner\AppData\Local\Android\sdk/tools/proguard/proguard-android.txt
++# You can edit the include path and order by changing the proguardFiles
++# directive in build.gradle.
++#
++# For more details, see
++#   http://developer.android.com/guide/developing/tools/proguard.html
++
++# Add any project specific keep options here:
++
++# If your project uses WebView with JS, uncomment the following
++# and specify the fully qualified class name to the JavaScript interface
++# class:
++#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
++#   public *;
++#}
+Index: app/src/main/java/no/hin/dt/weatherdataapp/DataSource.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/no/hin/dt/weatherdataapp/DataSource.java	(revision )
++++ app/src/main/java/no/hin/dt/weatherdataapp/DataSource.java	(revision )
+@@ -0,0 +1,213 @@
++package no.hin.dt.weatherdataapp;
++
++import android.app.Activity;
++import android.content.ContentValues;
++import android.database.Cursor;
++import android.database.SQLException;
++import android.database.sqlite.SQLiteDatabase;
++
++import java.util.ArrayList;
++
++/**
++ * Created by Julia on 06.03.2016.
++ */
++public class DataSource {
++
++    private SQLiteDatabase database;
++    private MySQLiteHelper dbHelper;
++   //private Fragment parent;
++    private Activity parent;
++
++
++    public String[] stationColumns = {
++            StationTable.STATION_DATA_ID,
++            StationTable.STATION_DATA_NAME,
++            StationTable.STATION_DATA_POSITION
++    };
++
++    private String[] WeatherColumns = {
++            WeatherTable.WEATHER_DATA_ID,
++            WeatherTable.WEATHER_STATION_NAME,
++            WeatherTable.WEATHER_STATION_POSITION,
++            WeatherTable.WEATHER_TIMESTAMP,
++            WeatherTable.WEATHER_TEMPERATURE,
++            WeatherTable.WEATHER_PRESSURE,
++            WeatherTable.WEATHER_HUMIDITY,
++            WeatherTable.WEATHER_STATION_ID
++    };
++
++
++
++    //Instansierer et MySQLiteHelper-objekt:
++
++    /*public DataSource(Fragment parentFragment) {
++        parent = parentFragment;
++        dbHelper = new MySQLiteHelper(parent.getActivity());
++    }*/
++
++    public DataSource(MainActivity mainActivity) {
++        parent = mainActivity;
++        dbHelper = new MySQLiteHelper(parent);
++    }
++
++
++    //"Åpner" databasen, har nå et SQLiteDatabase-objekt:
++    public void open() throws SQLException {
++        //Dersom databasen ikke eksisterer opprettes den. Ellers returneres en referanse til eksisterende database.
++        database = dbHelper.getWritableDatabase();
++    }
++
++    //Lukker databasen:
++
++    public void close() {
++        dbHelper.close();
++    }
++
++
++    // adds a new station to the database
++    public boolean createStationData(Station sta) {
++        ContentValues values = new ContentValues();
++        values.put(StationTable.STATION_DATA_NAME, sta.getName());
++        values.put(StationTable.STATION_DATA_POSITION, sta.getPosition());
++
++        long insertId = database.insert(StationTable.STATION_DATA_TABLE, null, values);
++        if (insertId >= 0)
++            return true;
++        else
++            return false;
++
++    }
++
++    // adds  new WeatherData to the database
++    public boolean createWeatherData(Weather wea){
++        ContentValues values = new ContentValues();
++        values.put(WeatherTable.WEATHER_STATION_NAME, wea.getStation_name());
++        values.put(WeatherTable.WEATHER_STATION_POSITION,wea.getStation_position());
++        values.put(WeatherTable.WEATHER_TIMESTAMP,wea.getTimestamp());
++        values.put(WeatherTable.WEATHER_TEMPERATURE, wea.getTemperature());
++        values.put(WeatherTable.WEATHER_PRESSURE, wea.getPressure());
++        values.put(WeatherTable.WEATHER_HUMIDITY, wea.getHumidity());
++        values.put(WeatherTable.WEATHER_STATION_ID,wea.getId());
++
++        long insertId = database.insert(WeatherTable.WEATHER_DATA_TABLE, null, values);
++        if(insertId>=0)
++            return true;
++        else
++            return false;
++
++    }
++
++
++    //Henter alle stasjonene
++    public Cursor getAllStations() {
++       Cursor cursor = database.query(StationTable.STATION_DATA_TABLE, stationColumns, null, null, null, null, null);
++    return cursor;
++    }
++
++    //Henter stasjonsværdata:
++    public Cursor getStationWeatherDataByStationId(int id) {
++        String selectQuery= "select * from WeatherDataTable where station_id = ?";
++        String [] selectParams = new String[] { String.valueOf(id) };
++        Cursor cursor = database.rawQuery(selectQuery, selectParams);
++        return cursor;
++    }
++
++    // sletter stasjoner  med  statsjons-id fra databasen
++
++    public void deleteStation(Station station) {
++        long id = station.getId();
++        database.delete(StationTable.STATION_DATA_TABLE, StationTable.STATION_DATA_ID + "=" + id, null);
++    }
++
++
++
++
++    // creats and returns a station object based on the currently selected pointer in referred cursor
++    public Station cursorToStation(Cursor cursor){
++        Station station = new Station();
++
++        int keyIndex = cursor.getColumnIndexOrThrow(StationTable.STATION_DATA_ID);
++        int nameIndex = cursor.getColumnIndexOrThrow(StationTable.STATION_DATA_NAME);
++        int positionIndex = cursor.getColumnIndexOrThrow(StationTable.STATION_DATA_POSITION);
++
++        station.setId(cursor.getInt(keyIndex));
++        station.setName(cursor.getString(nameIndex));
++        station.setPosition(cursor.getString(positionIndex));
++
++        return  station;
++
++    }
++
++    // get Sation name based on id
++    public void getStationById(ArrayList<Station> stations,String searchStation ){
++        searchStation =  "" + searchStation + "";
++
++        Cursor cursor = database.rawQuery("Select * from" + StationTable.STATION_DATA_TABLE + " where" + StationTable.STATION_DATA_NAME + " like"
++        , new String[] {searchStation,searchStation});
++        cursor.moveToFirst();
++        stations.clear();
++        while(!cursor.isAfterLast()){
++            stations.add(cursorToStation(cursor));
++            cursor.moveToNext();
++        }
++        cursor.close();
++
++        {
++
++        }
++
++    }
++
++    // gets all Weatherdat for a certain station (in descending order by id)
++    public Cursor getAllWeatherData(int _stationID) {
++
++        Cursor cursor = database.query(WeatherTable.WEATHER_DATA_TABLE, WeatherColumns, WeatherTable.WEATHER_STATION_ID
++                + "=" + _stationID, null, null, null, WeatherTable.WEATHER_DATA_ID + " DESC");
++
++        return cursor;
++    }
++
++    // creats and return a Weatherdata object based on the currently selected pointer in referred cursor
++    public Weather cursorToWeather(Cursor cursor) {
++        Weather weather = new Weather();
++
++        int keyIndex = cursor.getColumnIndexOrThrow(WeatherTable.WEATHER_DATA_ID);
++        int stationNameIndex = cursor.getColumnIndexOrThrow(WeatherTable.WEATHER_STATION_NAME);
++        int stationPositionIndex = cursor.getColumnIndexOrThrow(WeatherTable.WEATHER_STATION_POSITION);
++        int timestampIndex = cursor.getColumnIndexOrThrow(WeatherTable.WEATHER_TIMESTAMP);
++        int temperatureIndex = cursor.getColumnIndexOrThrow(WeatherTable.WEATHER_TEMPERATURE);
++        int pressureIndex = cursor.getColumnIndexOrThrow(WeatherTable.WEATHER_PRESSURE);
++        int humidityIndex = cursor.getColumnIndexOrThrow(WeatherTable.WEATHER_HUMIDITY);
++        int weatherIdIndex = cursor.getColumnIndexOrThrow(WeatherTable.WEATHER_STATION_ID);
++
++        weather.setId(cursor.getInt(keyIndex));
++        weather.setStation_name(cursor.getString(stationNameIndex));
++        weather.setStation_position(cursor.getString(stationPositionIndex));
++        weather.setTimestamp(cursor.getString(timestampIndex));
++        weather.setTemperature(cursor.getDouble(temperatureIndex));
++        weather.setPressure(cursor.getDouble(pressureIndex));
++        weather.setHumidity(cursor.getDouble(humidityIndex));
++        weather.setWeatherId(cursor.getInt(weatherIdIndex));
++
++        return weather;
++
++
++    }
++
++
++    }
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
+Index: app/src/main/res/layout/fragment_weather_info.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/layout/fragment_weather_info.xml	(revision )
++++ app/src/main/res/layout/fragment_weather_info.xml	(revision )
+@@ -0,0 +1,14 @@
++<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:tools="http://schemas.android.com/tools"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++    tools:context="no.hin.dt.weatherdataapp.WeatherInfoFragment">
++
++    <!-- TODO: Update blank fragment layout -->
++    <TextView
++        android:id="@+id/tv_weather"
++        android:layout_width="match_parent"
++        android:layout_height="match_parent"
++        android:background="#ffffff" />
++
++</FrameLayout>
+Index: app/src/main/java/no/hin/dt/weatherdataapp/StationTable.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/no/hin/dt/weatherdataapp/StationTable.java	(revision )
++++ app/src/main/java/no/hin/dt/weatherdataapp/StationTable.java	(revision )
+@@ -0,0 +1,50 @@
++package no.hin.dt.weatherdataapp;
++
++import android.database.sqlite.SQLiteDatabase;
++import android.util.Log;
++
++/**
++ * Created by Julia on 06.03.2016.
++ */
++
++// Tabellspesifikt fir stationtabell og opppgraderer seg selv
++public class StationTable {
++
++    // //Tabellspesifikt for StationTable:
++    public static final String STATION_DATA_TABLE = "StationDataTable";
++    public static final String STATION_DATA_ID = "id";
++    public static final String STATION_DATA_NAME = "name";
++    public static final String STATION_DATA_POSITION = "position";
++
++
++    // SQL statement for å opprette en ny tabell:
++    private static final String STATION_DATA_TABLE_CREATE= "create table "
++            + STATION_DATA_TABLE
++            + " (" + STATION_DATA_ID + " integer primary key autoincrement, "
++            + STATION_DATA_NAME + " text, "
++            + STATION_DATA_POSITION + " text" + ");";
++
++
++    public static void onCreate(SQLiteDatabase database) {
++        database.execSQL(STATION_DATA_TABLE_CREATE);
++    }
++
++    public static void onUpgrade(SQLiteDatabase database, int oldVersion, int newVersion) {
++        Log.w(StationTable.class.getName(), "Upgrading database from version "
++                + oldVersion + " to " + newVersion
++                + ", which will destroy all old data");
++
++        database.execSQL("DROP TABLE IF EXISTS " + STATION_DATA_TABLE);
++        onCreate(database);
++    }
++}
++
++
++
++
++
++
++
++
++
++
+Index: app/src/main/res/layout/fragment_station_list.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/layout/fragment_station_list.xml	(revision )
++++ app/src/main/res/layout/fragment_station_list.xml	(revision )
+@@ -0,0 +1,19 @@
++<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:tools="http://schemas.android.com/tools"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++    tools:context="no.hin.dt.weatherdataapp.StationListFragment"
++    >
++
++
++    <ListView
++        android:id="@+id/lv_Station_Selector"
++        android:layout_width="fill_parent"
++        android:choiceMode="singleChoice"
++        android:listSelector="@color/colorAccent"
++        android:layout_height="wrap_content"
++        android:background="#ffffff">
++    </ListView>
++
++
++</LinearLayout>
+Index: app/src/main/AndroidManifest.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/AndroidManifest.xml	(revision )
++++ app/src/main/AndroidManifest.xml	(revision )
+@@ -0,0 +1,21 @@
++<?xml version="1.0" encoding="utf-8"?>
++<manifest xmlns:android="http://schemas.android.com/apk/res/android"
++    package="no.hin.dt.weatherdataapp">
++
++    <uses-permission android:name="android.permission.INTERNET"></uses-permission>
++    <application
++        android:allowBackup="true"
++        android:icon="@mipmap/ic_launcher"
++        android:label="@string/app_name"
++        android:supportsRtl="true"
++        android:theme="@style/AppTheme">
++        <activity android:name="no.hin.dt.weatherdataapp.MainActivity">
++            <intent-filter>
++                <action android:name="android.intent.action.MAIN" />
++
++                <category android:name="android.intent.category.LAUNCHER" />
++            </intent-filter>
++        </activity>
++    </application>
++
++</manifest>
+Index: app/src/main/java/no/hin/dt/weatherdataapp/MainActivity.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/no/hin/dt/weatherdataapp/MainActivity.java	(revision )
++++ app/src/main/java/no/hin/dt/weatherdataapp/MainActivity.java	(revision )
+@@ -0,0 +1,311 @@
++package no.hin.dt.weatherdataapp;
++
++import android.database.Cursor;
++import android.net.Uri;
++import android.os.Bundle;
++import android.os.Handler;
++import android.support.v4.app.FragmentManager;
++import android.support.v7.app.AppCompatActivity;
++import android.util.Log;
++import android.view.Menu;
++import android.view.MenuItem;
++import android.view.View;
++import android.view.WindowManager;
++import android.widget.AdapterView;
++import android.widget.ListView;
++import android.widget.SimpleCursorAdapter;
++
++import com.google.gson.Gson;
++import com.google.gson.reflect.TypeToken;
++
++import java.io.BufferedReader;
++import java.io.BufferedWriter;
++import java.io.IOException;
++import java.io.InputStream;
++import java.io.InputStreamReader;
++import java.io.OutputStream;
++import java.io.OutputStreamWriter;
++import java.lang.reflect.Type;
++import java.net.CookieHandler;
++import java.net.CookieManager;
++import java.net.HttpURLConnection;
++import java.net.MalformedURLException;
++import java.net.SocketTimeoutException;
++import java.net.URL;
++import java.util.ArrayList;
++
++//Demonstrerer bruk av Gson, HttpUrlConnection og POST.
++//Laster ned ArrayList<User> som json.
++public class MainActivity extends AppCompatActivity implements StationListFragment.OnFragmentInteractionListener, StationListFragment.OnSelectionChanged {
++
++    private final Handler handler = new Handler();
++    private StringBuilder serverResponse;
++     private StationListFragment stationListFragment;
++    private WeatherInfoFragment weatherInfoFragment;
++    private DataSource dataSource;
++   private CookieManager cookieManager;
++
++    private SimpleCursorAdapter listViewAdapter = null;
++    private ListView stationListVeiw;
++    private int selectedStation;
++    private String selectedStationName;
++
++
++
++
++    @Override
++    protected void onCreate(Bundle savedInstanceState) {
++        super.onCreate(savedInstanceState);
++        setContentView(R.layout.activity_main);
++        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
++        CookieHandler.setDefault(cookieManager);
++        this.downloadUsingWorkerThread();
++        /*
++        GraphView graph = (GraphView) findViewById(R.id.graphTemperature);
++        LineGraphSeries<DataPoint> series = new LineGraphSeries<DataPoint>(new DataPoint[] {
++                new DataPoint(0, 1),
++                new DataPoint(1, 5),
++                new DataPoint(2, 3),
++                new DataPoint(3, 2),
++                new DataPoint(4, 6)
++        });
++        graph.addSeries(series);
++        */
++    }
++
++    @Override
++    public boolean onCreateOptionsMenu(Menu menu) {
++        // Inflate the menu; this adds items to the action bar if it is present.
++        getMenuInflater().inflate(R.menu.mainmenu, menu);
++        return true;
++    }
++
++    @Override
++    public boolean onOptionsItemSelected(MenuItem item) {
++        switch (item.getItemId()) {
++            case R.id.action_settings:
++                // User chose the "Settings" item, show the app settings UI...
++                return true;
++
++            case R.id.action_download:
++                this.downloadUsingWorkerThread();
++                break;
++
++            case R.id.action_end:
++                this.finish();
++                break;
++
++            default:
++                // If we got here, the user's action was not recognized.
++                // Invoke the superclass to handle it.
++                return super.onOptionsItemSelected(item);
++        }
++        return true;
++    }
++
++   // denne metoden oppretter databasen ved oppstart av applikasjonen
++
++    @Override
++    protected  void onStart(){
++        super.onStart();
++
++        // creates a new DataSource-object that we use to interact with the database
++        dataSource = new DataSource(this);
++
++        dataSource.open(); // opens database connection
++
++        Cursor categoryCursor = dataSource.getAllStations();
++        dataSource.getAllStations();
++
++
++
++
++
++    }
++    // closes database connectio
++    @Override
++    protected  void onStop(){
++        super.onStop();
++        dataSource.close();
++    }
++
++
++
++    // runs when station is selete, shows the weatherdata for the selected station
++    @Override
++    public void onStationSelected(AdapterView<?> parent, View view, String position, int id){
++        ArrayList<Station> tempList = new ArrayList<>();
++        Cursor cursor = dataSource.getAllStations(); // gets all stations
++        cursor.getColumnIndex(StationTable.STATION_DATA_NAME);
++
++        // goes trough all the stations and creates a list of stations
++        while(!cursor.isAfterLast()){
++            tempList.add(dataSource.cursorToStation(cursor));
++            cursor.getColumnIndex(StationTable.STATION_DATA_NAME);
++
++        }
++
++        cursor.close();
++
++
++
++
++    }
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++    // lag en metodet start og stop i actionbar som skal laste ned weatherdata info og graf utifra tid
++
++
++    private void downloadUsingWorkerThread() {
++        // Flytter krevede prosessering til egen tråd:
++        Thread thread = new Thread(null, runInBackground, "Bakgrunn");
++        thread.start();
++    }
++
++    // Runnable som inneholder metoden som bakgrunnstråden starter:
++    private final Runnable runInBackground = new Runnable() {
++        public void run() {
++            connectToServer();
++        }
++    };
++
++    //Laster ned og viser i TextView:
++    private void connectToServer() {
++        String params = "";
++        String myURL = "http://kark.hin.no/~wfa/fag/android/2016/weather/vstations.php";
++        //String myURL = "http://10.0.2.2:8080/getTestUsers"; //Fra emulator mot localhost.
++        HttpURLConnection conn=null;
++        serverResponse = new StringBuilder();
++        try {
++            URL url = new URL(myURL);
++            conn = (HttpURLConnection) url.openConnection();
++            conn.setRequestProperty("Connection", "close");
++            conn.setRequestMethod("POST");
++            conn.setDoInput(true);
++            conn.setDoOutput(true);
++
++            OutputStream os = conn.getOutputStream();
++            //Eventuelle parametre:
++            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
++            writer.write(params);
++            writer.flush();
++            writer.close();
++            os.close();
++            // Utfører HTTP-forespørsel:
++            conn.connect();
++            int responseCode = conn.getResponseCode();
++
++            if (responseCode == HttpURLConnection.HTTP_OK) {
++                //Leser inputstream...
++                readServerResponse(conn.getInputStream(), serverResponse);
++            } else {
++                serverResponse.append("Ingen/feil svar fra server...");
++            }
++
++            //Kun hovedtråden kan oppdatere GUI-komponenter. Vha. handler.post(enMetode) sørger vi for at enMetode kjøres av hovedtråden.
++            handler.post(oppdaterGUI); //NB!!
++
++        } catch (SocketTimeoutException ste) {
++            ste.printStackTrace();
++            serverResponse.append("Socket timeout exception:" + ste.getMessage());
++        } catch (MalformedURLException e) {
++            Log.d("HTTP-test", "Malformed URL Exception.");
++            serverResponse.append(e.getMessage());
++        } catch (IOException e) {
++            Log.d("HTTP-test", "IO Exception: " + e.getMessage());
++            serverResponse.append(e.getMessage());
++        } catch (Exception e) {
++            Log.d("HTTP-test", "Exception: " + e.getMessage());
++            serverResponse.append(e.getMessage());
++        } finally {
++            if (conn!=null)
++                conn.disconnect();
++        }
++
++    }
++
++    //Leser svar fra server vha. InputStream-objektet:
++    private void readServerResponse(InputStream is, StringBuilder serverResponse) {
++        String line;
++        try {
++            BufferedReader br = new BufferedReader(new InputStreamReader(is));
++            while ((line = br.readLine()) != null) {
++                serverResponse.append(line);
++            }
++        } catch (IOException ioe) {
++            ioe.printStackTrace();
++        }
++    }
++
++    //Kjores av GUI-tråden:
++    protected final Runnable oppdaterGUI = new Runnable() {
++        public void run() {
++            //Gjør om til User-objekt:
++            Gson gson = new Gson();
++
++            Type type = new TypeToken<ArrayList<Station>>(){}.getType();
++            ArrayList<Station> stationList = new Gson().fromJson(String.valueOf(serverResponse), type);
++/*
++            ArrayList<String> stationNames = new ArrayList<>();
++            for (Station station: stationList) {
++                stationNames.add(station.getName());
++            }
++*/
++        //    sendStationListData(stationNames);
++            sendStationListData(stationList);          }
++    };
++
++    public void sendStationListData(ArrayList<Station> stationList){
++
++        FragmentManager fm = getSupportFragmentManager();
++        //StationListFragment stationListFragment;
++        stationListFragment = (StationListFragment) fm.findFragmentById(R.id.fragment_station_list);
++
++        stationListFragment.FillStationList(stationList);
++    }
++
++    @Override
++    public void onFragmentInteraction(Uri uri) {
++
++    }
++
++    @Override
++
++    public void onIndexChanged(Station returnedStation) {
++     //   Toast toas = Toast.makeText(getApplicationContext(), "clicked: " + returnedStation.getName(), Toast.LENGTH_SHORT);
++       // toas.show();
++        new  DownloadWeatherDataASyncTask(this).execute(returnedStation);
++
++    }
++
++    public void returnedStationData(String s){
++
++        Gson gson = new Gson();
++        Weather weather = gson.fromJson(s, Weather.class);
++
++        // send weather data to both fragments from here
++       FragmentManager fm2 = getSupportFragmentManager();
++       // WeatherInfoFragment weatherInfoFragment;
++        weatherInfoFragment = (WeatherInfoFragment) fm2.findFragmentById(R.id.fragment_weather_info);
++
++        weatherInfoFragment.displayWeatherData(weather);
++
++
++
++    }
++
++}
++
++
+Index: app/src/main/java/no/hin/dt/weatherdataapp/WeatherTable.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/no/hin/dt/weatherdataapp/WeatherTable.java	(revision )
++++ app/src/main/java/no/hin/dt/weatherdataapp/WeatherTable.java	(revision )
+@@ -0,0 +1,60 @@
++package no.hin.dt.weatherdataapp;
++
++import android.database.sqlite.SQLiteDatabase;
++import android.util.Log;
++
++/**
++ * Created by Julia on 06.03.2016.
++ */
++public class WeatherTable {
++
++    public static final String WEATHER_DATA_TABLE = "WeatherDataTable";
++    public static final String WEATHER_DATA_ID= "id";
++    public static final String WEATHER_STATION_NAME = "station_name";
++    public static final String WEATHER_STATION_POSITION = "station_position";
++    public static final String WEATHER_TIMESTAMP = "timestamp";
++    public static final String WEATHER_TEMPERATURE ="temperature";
++    public static final String WEATHER_PRESSURE = "pressure";
++    public static final String WEATHER_HUMIDITY ="humidity";
++    public static final String WEATHER_STATION_ID = "station_id";
++
++
++    // SQL statement for å opprette en ny tabell:
++    private static final String WEATHER_DATA_TABLE_CREATE= "create table "
++            + WEATHER_DATA_TABLE
++            + " (" + WEATHER_DATA_ID + " integer primary key autoincrement, "
++            + WEATHER_STATION_NAME + " text, "
++            + WEATHER_STATION_POSITION + " text, "
++            + WEATHER_TIMESTAMP + " text, "
++            + WEATHER_TEMPERATURE + " real, "
++            + WEATHER_PRESSURE + " real, "
++            + WEATHER_HUMIDITY + " real, "
++            + WEATHER_STATION_ID + " integer, "
++            + " FOREIGN KEY(" + WEATHER_STATION_ID + ") REFERENCES " + StationTable.STATION_DATA_TABLE
++            + "(" + StationTable.STATION_DATA_ID + ") ON DELETE CASCADE);";
++
++
++
++    public static void onCreate(SQLiteDatabase database) {
++        database.execSQL(WEATHER_DATA_TABLE_CREATE);
++    }
++
++    public static void onUpgrade(SQLiteDatabase database, int oldVersion, int newVersion) {
++        Log.w(WeatherTable.class.getName(), "Upgrading database from version "
++                + oldVersion + " to " + newVersion
++                + ", which will destroy all old data");
++
++        database.execSQL("DROP TABLE IF EXISTS " + WEATHER_DATA_TABLE);
++        onCreate(database);
++
++
++    }
++}
++
++
++
++
++
++
++
++
+Index: app/src/main/res/menu/mainmenu.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/menu/mainmenu.xml	(revision )
++++ app/src/main/res/menu/mainmenu.xml	(revision )
+@@ -0,0 +1,22 @@
++<?xml version="1.0" encoding="utf-8"?>
++<menu xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:app="http://schemas.android.com/apk/res-auto">
++
++    <item
++        android:id="@+id/action_download"
++        android:icon="@drawable/ic_file_download_white_24dp"
++        android:title="@string/action_end"
++        app:showAsAction="ifRoom"/>
++
++    <item
++        android:id="@+id/action_end"
++        android:icon="@android:drawable/ic_menu_close_clear_cancel"
++        android:title="@string/action_end"
++        app:showAsAction="ifRoom"/>
++
++    <!-- Settings, should always be in the overflow -->
++    <item android:id="@+id/action_settings"
++        android:title="@string/action_settings"
++        app:showAsAction="never"/>
++
++</menu>
+\ No newline at end of file
+Index: app/src/main/res/values/dimens.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/values/dimens.xml	(revision )
++++ app/src/main/res/values/dimens.xml	(revision )
+@@ -0,0 +1,5 @@
++<resources>
++    <!-- Default screen margins, per the Android Design guidelines. -->
++    <dimen name="activity_horizontal_margin">16dp</dimen>
++    <dimen name="activity_vertical_margin">16dp</dimen>
++</resources>
+Index: app/src/main/res/values/styles.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/values/styles.xml	(revision )
++++ app/src/main/res/values/styles.xml	(revision )
+@@ -0,0 +1,15 @@
++<resources>
++
++    <!-- Base application theme. -->
++    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
++        <!-- Customize your theme here. -->
++        <item name="colorPrimary">@color/colorPrimary</item>
++        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
++        <item name="colorAccent">@color/colorAccent</item>
++    </style>
++
++    <style name="valData"></style>
++
++    <style name="tempStyle"></style>
++
++</resources>
+Index: app/src/main/java/no/hin/dt/weatherdataapp/GraphFragment.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/no/hin/dt/weatherdataapp/GraphFragment.java	(revision )
++++ app/src/main/java/no/hin/dt/weatherdataapp/GraphFragment.java	(revision )
+@@ -0,0 +1,93 @@
++package no.hin.dt.weatherdataapp;
++
++import android.content.Context;
++import android.net.Uri;
++import android.os.Bundle;
++import android.support.v4.app.Fragment;
++import android.view.LayoutInflater;
++import android.view.View;
++import android.view.ViewGroup;
++
++import com.jjoe64.graphview.GraphView;
++
++
++public class GraphFragment extends Fragment {
++
++
++    private static final String ARG_PARAM1 = "param1";
++    private static final String ARG_PARAM2 = "param2";
++    private DataSource dataSource;
++    private MySQLiteHelper mySQLiteHelper;
++    private GraphView graphView;
++
++
++    private String mParam1;
++    private String mParam2;
++
++    private OnFragmentInteractionListener mListener;
++
++    // Required empty public constructor
++    public GraphFragment() {
++
++
++    }
++
++
++
++
++
++
++    public static GraphFragment newInstance(String param1, String param2) {
++        GraphFragment fragment = new GraphFragment();
++        Bundle args = new Bundle();
++        args.putString(ARG_PARAM1, param1);
++        args.putString(ARG_PARAM2, param2);
++        fragment.setArguments(args);
++        return fragment;
++    }
++
++    @Override
++    public void onCreate(Bundle savedInstanceState) {
++        super.onCreate(savedInstanceState);
++        if (getArguments() != null) {
++            mParam1 = getArguments().getString(ARG_PARAM1);
++            mParam2 = getArguments().getString(ARG_PARAM2);
++        }
++    }
++
++    @Override
++    public View onCreateView(LayoutInflater inflater, ViewGroup container,
++                             Bundle savedInstanceState) {
++        // Inflate the layout for this fragment
++        return inflater.inflate(R.layout.fragment_graph, container, false);
++    }
++
++
++    public void onButtonPressed(Uri uri) {
++        if (mListener != null) {
++            mListener.onFragmentInteraction(uri);
++        }
++    }
++
++    @Override
++    public void onAttach(Context context) {
++        super.onAttach(context);
++        if (context instanceof OnFragmentInteractionListener) {
++            mListener = (OnFragmentInteractionListener) context;
++        } else {
++            throw new RuntimeException(context.toString()
++                    + " must implement OnFragmentInteractionListener");
++        }
++    }
++
++    @Override
++    public void onDetach() {
++        super.onDetach();
++        mListener = null;
++    }
++
++
++    public interface OnFragmentInteractionListener {
++        void onFragmentInteraction(Uri uri);
++    }
++}
+Index: app/src/main/res/layout/fragment_graph.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/layout/fragment_graph.xml	(revision )
++++ app/src/main/res/layout/fragment_graph.xml	(revision )
+@@ -0,0 +1,13 @@
++<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:tools="http://schemas.android.com/tools"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++    tools:context="no.hin.dt.weatherdataapp.GraphFragment">
++
++    <!-- TODO: Update blank fragment layout
++    <com.jjoe64.graphview.GraphView
++        android:layout_width="match_parent"
++        android:layout_height="200dip"
++        android:id="@+id/graphTemperature" />-->
++
++</FrameLayout>
+Index: app/.gitignore
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/.gitignore	(revision )
++++ app/.gitignore	(revision )
+@@ -0,0 +1,1 @@
++/build
